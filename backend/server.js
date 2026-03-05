@@ -15,6 +15,9 @@ const sessionStore = new pgSession({ pool, createTableIfMissing: true });
 
 const app = express();
 
+// Trust Vercel proxy so cookies and HTTPS work correctly
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors({ origin: true, credentials: true }));
 app.use((req, res, next) => {
@@ -38,11 +41,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'your_session_secret_key',
   resave: false,
   saveUninitialized: false,
+  name: 'vinayaka.sid', // avoid conflicts with other apps
   cookie: {
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    sameSite: 'lax',
+    path: '/'
   }
 }));
 

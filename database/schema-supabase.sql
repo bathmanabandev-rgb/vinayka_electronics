@@ -87,6 +87,15 @@ CREATE TRIGGER products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUT
 DROP TRIGGER IF EXISTS bills_updated_at ON bills;
 CREATE TRIGGER bills_updated_at BEFORE UPDATE ON bills FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 
+-- Session store for express-session (connect-pg-simple) - required for Vercel login persistence
+CREATE TABLE IF NOT EXISTS "session" (
+  "sid" varchar NOT NULL,
+  "sess" json NOT NULL,
+  "expire" timestamp(6) NOT NULL,
+  PRIMARY KEY ("sid")
+);
+CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+
 -- Seed users (on conflict do nothing)
 INSERT INTO users (username, email, password, role) VALUES
   ('admin', 'admin@billing.com', '$2a$10$qLZfKIz0dkKmKzx0t2V/huqTzCzCd5XqQrqKFjX5fXVKPEKBp.Zw.', 'admin'),
