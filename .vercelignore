@@ -1,6 +1,9 @@
 node_modules
 .env
 .env.local
+.env.*
+backend/.env
+backend/.env.*
 *.log
 .DS_Store
 backend/node_modules

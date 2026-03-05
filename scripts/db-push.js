@@ -1,83 +1,55 @@
 #!/usr/bin/env node
 /**
- * Push database schema and all migrations to MySQL.
+ * Push PostgreSQL schema to Supabase (or any Postgres DB).
  * Usage: npm run db:push
- * Requires .env with DB_HOST, DB_USER, DB_PASSWORD, DB_NAME (optional: DB_PORT=3306)
+ * Requires .env with DATABASE_URL (Supabase) or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT
  */
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
-const mysql = require('mysql2/promise');
+const { Client } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
-const DB_CONFIG = {
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT, 10) || 3306,
-  multipleStatements: true
-};
+const connectionString = process.env.DATABASE_URL;
 
-const MIGRATIONS = [
-  'schema.sql',
-  'add-invoice-no-to-bills.sql',
-  'add-is-active-to-products.sql',
-  'add-optional-fields-to-bills.sql',
-  'update-add-image-column.sql'
-];
+const client = connectionString
+  ? new Client({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    })
+  : new Client({
+      host: process.env.DB_HOST || 'localhost',
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'postgres',
+      port: parseInt(process.env.DB_PORT, 10) || 5432,
+      ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
+    });
 
-function readSql(filePath) {
-  const full = path.join(__dirname, '..', 'database', filePath);
-  if (!fs.existsSync(full)) {
-    console.warn(`⚠ Skip (not found): ${filePath}`);
-    return null;
-  }
-  let sql = fs.readFileSync(full, 'utf8');
-  // Remove DESCRIBE (optional, can break in some flows)
-  sql = sql.replace(/\s*DESCRIBE\s+\w+\s*;/gi, '').trim();
-  return sql || null;
-}
-
-async function runMigration(conn, name, sql) {
-  if (!sql) return;
-  try {
-    await conn.query(sql);
-    console.log(`  ✓ ${name}`);
-  } catch (err) {
-    const msg = (err.message || '').toLowerCase();
-    if (msg.includes('already exists') || msg.includes('duplicate column') || msg.includes('duplicate key')) {
-      console.log(`  ⏭ ${name}: skipped (already applied)`);
-      return;
-    }
-    throw err;
-  }
-}
+const schemaPath = path.join(__dirname, '..', 'database', 'schema-supabase.sql');
 
 async function main() {
-  if (!DB_CONFIG.host || !DB_CONFIG.user || !DB_CONFIG.database) {
-    console.error('Missing DB_HOST, DB_USER, or DB_NAME in .env');
+  if (!connectionString && (!process.env.DB_HOST || !process.env.DB_USER || !process.env.DB_NAME)) {
+    console.error('Missing DB config. Set DATABASE_URL (Supabase) or DB_HOST, DB_USER, DB_PASSWORD, DB_NAME in .env');
     process.exit(1);
   }
 
   console.log('Connecting to database...');
-  const conn = await mysql.createConnection({
-    ...DB_CONFIG,
-    database: undefined // connect without DB first for CREATE DATABASE
-  });
+  await client.connect();
 
   try {
-    for (const file of MIGRATIONS) {
-      const sql = readSql(file);
-      if (!sql) continue;
-      const name = file;
-      await runMigration(conn, name, sql);
+    if (!fs.existsSync(schemaPath)) {
+      console.error('Schema file not found:', schemaPath);
+      process.exit(1);
     }
+    const sql = fs.readFileSync(schemaPath, 'utf8');
+    console.log('Running schema-supabase.sql...');
+    await client.query(sql);
     console.log('\n✓ Database push complete.');
   } catch (err) {
     console.error('\n✗ Migration failed:', err.message);
     process.exit(1);
   } finally {
-    await conn.end();
+    await client.end();
   }
 }
 

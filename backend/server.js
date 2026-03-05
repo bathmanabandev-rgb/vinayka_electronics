@@ -38,12 +38,10 @@ app.use(session({
   }
 }));
 
-// Serve static files (frontend) - only in non-Vercel environment
-// In Vercel, static files are served directly
-if (process.env.VERCEL !== '1') {
-  app.use(express.static(path.join(__dirname, '../frontend')));
-  app.use('/images', express.static(path.join(__dirname, '../frontend/images')));
-}
+// Serve static files (frontend) - always, so Vercel can serve app via same function
+const frontendPath = path.join(__dirname, '../frontend');
+app.use(express.static(frontendPath));
+app.use('/images', express.static(path.join(frontendPath, 'images')));
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -57,12 +55,11 @@ app.use('/api/products', productRoutes);
 app.use('/api/bills', billRoutes);
 app.use('/api/users', userRoutes);
 
-// Serve index.html for all non-API routes - only in non-Vercel environment
-if (process.env.VERCEL !== '1') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/index.html'));
-  });
-}
+// SPA fallback: serve index.html for non-API routes (works on Vercel and locally)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

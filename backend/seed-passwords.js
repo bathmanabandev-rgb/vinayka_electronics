@@ -5,22 +5,19 @@ async function seedDatabase() {
   try {
     console.log('🔄 Generating password hashes...\n');
 
-    // Generate hashes
     const adminHash = await bcrypt.hash('admin123', 10);
     const staffHash = await bcrypt.hash('staff123', 10);
 
     console.log('✅ Hashes generated successfully\n');
 
-    // Update admin password
     await pool.query(
-      'UPDATE users SET password = ? WHERE username = ?',
+      'UPDATE users SET password = $1 WHERE username = $2',
       [adminHash, 'admin']
     );
     console.log('✅ Admin password updated');
 
-    // Update staff password
     await pool.query(
-      'UPDATE users SET password = ? WHERE username = ?',
+      'UPDATE users SET password = $1 WHERE username = $2',
       [staffHash, 'staff1']
     );
     console.log('✅ Staff password updated');
