@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tax Invoice</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    .invoice-wrapper {
+      width: 800px;
+      margin: 0 auto;
+      padding: 20px 25px 35px; /* extra bottom padding so final text sits comfortably above the border */
+      border: 1px solid #000;
+    }
+    .top-line {
+      font-size: 14px;
+      text-align: right;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .header {
+      text-align: center;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 22px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header p {
+      margin: 2px 0;
+      font-size: 12px;
+    }
+    .gstin {
+      text-align: left;
+      font-size: 12px;
+      margin: 3px 0 8px;
+      font-weight: bold;
+    }
+    .details-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+    .details-row > div {
+      width: 48%;
+      border: 1px solid #000;
+      padding: 6px;
+      min-height: 70px;
+    }
+    .details-row h3 {
+      margin: 0 0 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .details-row p {
+      margin: 2px 0;
+    }
+    .items table,
+    .totals table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .items th,
+    .items td {
+      border: 1px solid #000;
+      padding: 4px 5px;
+      vertical-align: top;
+    }
+    .items th {
+      text-align: center;
+      font-weight: bold;
+    }
+    .items td:nth-child(1),
+    .items td:nth-child(3),
+    .items td:nth-child(4),
+    .items td:nth-child(5),
+    .items td:nth-child(6) {
+      text-align: center;
+    }
+    .totals {
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .totals td {
+      padding: 3px 5px;
+    }
+    .bank-details {
+      border: 1px solid #000;
+      padding: 6px;
+      font-size: 12px;
+      margin-top: 10px;
+    }
+    .bank-details h3 {
+      margin: 0 0 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+    .bank-details p {
+      margin: 1px 0;
+    }
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 11px;
+    }
+    .footer-left {
+      width: 55%;
+    }
+    .footer-right {
+      width: 40%;
+      text-align: right;
+    }
+    .signature-box {
+      margin-top: 60px; /* more space so signature line sits lower in the box */
+      text-align: center;
+    }
+    .signature-line {
+      display: inline-block;
+      border-top: 1px solid #000;
+      padding-top: 6px;
+      font-size: 11px;
+      width: 140px;
+      text-align: center;
+    }
+    /* new styles for improved alignment */
+    .totals table td.label { text-align: right; padding-right: 8px; }
+    .totals table td.value { text-align: right; }
+    .totals table td.total { font-size: 13px; }
+    .totals .in-words {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding-bottom: 4px;
+      border-bottom: 2px dotted #000; /* thicker line */
+    }
+
+    /* ensure same rupees‑line to right edge */
+    .totals .in-words::after {
+      content: '';
+      display: inline-block;
+      width: calc(100% - 260px); /* adjust to leave room for label */
+      border-bottom: 1px dotted #000;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      .invoice-wrapper {
+        border: 1px solid #000;
+        margin: 0;
+        width: 100%;
+      }
+      .no-print {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="invoice-wrapper">
+    <div class="top-line">TAX INVOICE</div>
+
+    <div class="header">
+      <h1>VINAYAGA ELECTRICALS</h1>
+      <p>201‑N, Palathurai Road, Madukkarai, Coimbatore‑641105</p>
+      <p>Cell: 99431 37207 / 63856 35827</p>
+    </div>
+
+    <div class="gstin">GSTIN: 33AAVPV1924E2ZS</div>
+
+    <div class="details-row">
+      <div>
+        <h3>To</h3>
+        <!-- recipient details removed; populated dynamically via PDF generator -->
+      </div>
+      <div>
+        <p><strong>Invoice No:</strong> ________</p>
+        <p><strong>Invoice Date:</strong> ________</p>
+        <p><strong>Order No:</strong> ________</p>
+        <p><strong>Vehicle No:</strong> ________</p>
+      </div>
+    </div>
+
+    <div class="items">
+      <table>
+        <thead>
+          <tr>
+            <th>S.No</th>
+            <th>Description</th>
+            <th>HSN Code</th>
+            <th>Quantity</th>
+            <th>Rate (Rs)</th>
+            <th>Amount (Rs)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>______________________________________________</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>______________________________________________</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td>______________________________________________</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>______________________________________________</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="totals">
+      <table>
+        <colgroup>
+          <col style="width:70%" />
+          <col style="width:30%" />
+        </colgroup>
+        <tr>
+          <td class="label"><strong>Total</strong></td>
+          <td class="value">__________</td>
+        </tr>
+        <tr>
+          <td class="label"><strong>CGST @ 9%</strong></td>
+          <td class="value">__________</td>
+        </tr>
+        <tr>
+          <td class="label"><strong>SGST @ 9%</strong></td>
+          <td class="value">__________</td>
+        </tr>
+        <tr>
+          <td class="label"><strong>IGST @ 0%</strong></td>
+          <td class="value">__________</td>
+        </tr>
+        <tr>
+          <td class="label"><strong>Round Off</strong></td>
+          <td class="value">__________</td>
+        </tr>
+        <tr>
+          <td class="label total"><strong>Invoice Total</strong></td>
+          <td class="value total"><strong>__________</strong></td>
+        </tr>
+      </table>
+      <p class="in-words"><strong>Rupees in words :</strong> _______________________________________________</p>
+      <p style="margin: 4px 0; padding-top: 6px; border-top: 2px dotted #000; font-weight: bold; font-size: 12px;">Terms & Conditions :</p>
+      <p style="margin: 3px 0; font-size: 12px;">• All Subject to Coimbatore Jurisdiction only.</p>
+      <p style="margin: 3px 0; font-size: 12px;">• Certified that the Particulars given above true and correct</p>
+    </div>
+
+    <div class="bank-details">
+      <h3>Bank Details</h3>
+      <p><strong>Bank Name:</strong> IDBI Bank</p>
+      <p><strong>Branch:</strong> R.S. Puram, Coimbatore</p>
+      <p><strong>A/C No.:</strong> 162110200046441</p>
+      <p><strong>IFSC Code:</strong> IBKL0001621</p>
+    </div>
+
+    <div class="footer">
+      <div class="footer-left">
+      </div>
+      <div class="footer-right">
+        <p>For VINAYAGA ELECTRICALS</p>
+        <div class="signature-box">
+          <span class="signature-line">Authorised Signatory</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="no-print" style="text-align:center; margin-top:15px;">
+    <button onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</body>
+</html>
+

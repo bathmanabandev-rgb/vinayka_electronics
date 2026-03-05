@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VINAYAGA ELECTRICALS - Billing & Invoicing System</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Login Page -->
+    <div id="loginPage" class="page active">
+      <div class="login-container">
+        <div class="login-card">
+          <div class="company-logo">
+            <div class="logo-icon">⚡</div>
+            <h1>VINAYAGA ELECTRICALS</h1>
+            <p class="company-tagline">Billing & Invoicing System</p>
+          </div>
+          <form id="loginForm">
+            <div class="form-group">
+              <label for="loginUsername">Username</label>
+              <input type="text" id="loginUsername" required placeholder="Enter username">
+            </div>
+            <div class="form-group">
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Login</button>
+          </form>
+          <div class="login-info">
+            <p><strong>Admin Login:</strong> admin / admin123</p>
+            <p><strong>Staff Login:</strong> staff1 / staff123</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="page">
+      <div class="container-fluid">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+          <div class="sidebar-header">
+            <div class="company-logo-sidebar">
+              <div class="logo-icon-small">⚡</div>
+              <div>
+                <h2>VINAYAGA</h2>
+                <p class="company-subtitle">ELECTRICALS</p>
+              </div>
+            </div>
+          </div>
+          <ul class="nav-menu">
+            <li><a href="#" data-page="dashboard" class="nav-link active"><span>📊</span> Dashboard</a></li>
+            <li id="adminMenu">
+              <a href="#" data-page="products" class="nav-link"><span>📦</span> Products</a>
+            </li>
+            <li id="staffMenu">
+              <a href="#" data-page="billing" class="nav-link"><span>🧾</span> Create Bill</a>
+            </li>
+            <li>
+              <a href="#" data-page="reports" class="nav-link"><span>📈</span> Reports</a>
+            </li>
+            <li id="userManagementMenu">
+              <a href="#" data-page="users" class="nav-link"><span>👥</span> Manage Staff</a>
+            </li>
+            <li class="nav-divider"></li>
+            <li>
+              <a href="#" id="logoutBtn" class="nav-link"><span>🚪</span> Logout</a>
+            </li>
+          </ul>
+          <div class="sidebar-footer">
+            <p id="userInfo">Welcome!</p>
+          </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+          <!-- Header -->
+          <header class="header">
+            <div class="header-left">
+              <h1 id="pageTitle">Dashboard</h1>
+              <span class="company-name-header">VINAYAGA ELECTRICALS</span>
+            </div>
+            <div class="header-right">
+              <span id="currentTime"></span>
+            </div>
+          </header>
+
+          <!-- Pages Container -->
+          <div class="pages-container">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="page-content active">
+              <div class="dashboard-grid">
+                <div class="stat-card">
+                  <h3>Total Products</h3>
+                  <p class="stat-value" id="totalProducts">0</p>
+                </div>
+                <div class="stat-card">
+                  <h3>Total Sales</h3>
+                  <p class="stat-value" id="totalSalesAmount">₹0</p>
+                </div>
+                <div class="stat-card">
+                  <h3>Total Bills</h3>
+                  <p class="stat-value" id="totalBillsCount">0</p>
+                </div>
+                <div class="stat-card">
+                  <h3>Low Stock Products</h3>
+                  <p class="stat-value" id="lowStockCount">0</p>
+                </div>
+              </div>
+
+              <div class="dashboard-section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                  <h2 style="margin: 0;">Recent Bills</h2>
+                  <div style="width: 300px;">
+                    <input type="text" id="billsSearch" placeholder="🔍 Search bills..." class="search-input">
+                  </div>
+                </div>
+                <div class="table-container">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Bill ID</th>
+                        <th>Staff Name</th>
+                        <th>Amount</th>
+                        <th>Date</th>
+                        <th>Payment</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="recentBillsBody">
+                      <tr>
+                        <td colspan="6" class="text-center">Loading...</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Products Page -->
+            <div id="productsPage" class="page-content">
+              <div class="page-header">
+                <h2>Product Management</h2>
+                <button id="addProductBtn" class="btn btn-primary">+ Add Product</button>
+              </div>
+
+              <div class="search-box">
+                <input type="text" id="productSearch" placeholder="Search products...">
+              </div>
+
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Product ID</th>
+                      <th>Name</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>Stock</th>
+                      <th>Barcode</th>
+                      <th>Image</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="productsBody">
+                    <tr>
+                      <td colspan="7" class="text-center">Loading...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Billing Page -->
+            <div id="billingPage" class="page-content">
+              <div class="billing-container">
+                <div class="billing-left">
+                  <h2>Create Bill</h2>
+                  <div class="search-box">
+                    <input type="text" id="productSearchBill" placeholder="Search or scan product barcode...">
+                  </div>
+                  <div class="products-list" id="billProductsList">
+                    <!-- Products will be loaded here -->
+                  </div>
+                </div>
+
+                <div class="billing-right">
+                  <div class="cart">
+                    <h2>Cart</h2>
+                    <div class="cart-items" id="cartItems">
+                      <p class="text-center text-muted">Add products to cart</p>
+                    </div>
+
+                    <div class="cart-summary">
+                      <div class="form-group">
+                        <label for="toAddress">To Address:</label>
+                        <textarea id="toAddress" placeholder="Enter customer address (optional)" rows="2" class="invoice-input"></textarea>
+                        <small>Leave blank if not needed</small>
+                      </div>
+                      <div class="form-group">
+                        <label for="invoiceNumber">Invoice Number:</label>
+                        <input type="text" id="invoiceNumber" placeholder="Enter invoice number (optional)" class="invoice-input">
+                        <small>Leave blank for auto-generated number</small>
+                      </div>
+                      <div class="form-group">
+                        <label for="invoiceDate">Invoice Date:</label>
+                        <input type="date" id="invoiceDate" class="invoice-input">
+                        <small>Leave blank to use today's date</small>
+                      </div>
+                      <div class="form-group">
+                        <label for="orderNo">Order No:</label>
+                        <input type="text" id="orderNo" placeholder="Enter order number (optional)" class="invoice-input">
+                        <small>Leave blank if not needed</small>
+                      </div>
+                      <div class="form-group">
+                        <label for="vehicleNo">Vehicle No:</label>
+                        <input type="text" id="vehicleNo" placeholder="Enter vehicle number (optional)" class="invoice-input">
+                        <small>Leave blank if not needed</small>
+                      </div>
+                      <div class="summary-section">
+                        <div class="summary-row">
+                          <span class="summary-label">Subtotal:</span>
+                          <span class="summary-value" id="cartSubtotal">₹0.00</span>
+                        </div>
+                        <div class="summary-row tax-row">
+                          <span class="summary-label">Tax (%):</span>
+                          <div class="tax-input-wrapper">
+                            <input type="number" id="taxPercent" value="0" min="0" max="100" step="0.01" class="tax-input">
+                            <span class="tax-percent-symbol">%</span>
+                          </div>
+                        </div>
+                        <div class="summary-row">
+                          <span class="summary-label">Tax Amount:</span>
+                          <span class="summary-value" id="cartTax">₹0.00</span>
+                        </div>
+                      </div>
+                      <div class="summary-divider"></div>
+                      <div class="summary-row total">
+                        <span class="summary-label">Grand Total:</span>
+                        <span class="summary-value total-value" id="cartTotal">₹0.00</span>
+                      </div>
+                      <div class="form-group">
+                        <label for="paymentMethod">Payment Method:</label>
+                        <select id="paymentMethod">
+                          <option value="cash">Cash</option>
+                          <option value="card">Card</option>
+                          <option value="check">Check</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <button id="completeBillBtn" class="btn btn-success btn-full" disabled>Complete Bill</button>
+                      <button id="clearCartBtn" class="btn btn-secondary btn-full">Clear Cart</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reports Page -->
+            <div id="reportsPage" class="page-content">
+              <h2>Reports & Analytics</h2>
+
+              <div class="reports-grid">
+                <div class="report-card">
+                  <h3>Daily Sales</h3>
+                  <div id="dailySalesTable">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Sales Amount</th>
+                          <th>Bills Count</th>
+                        </tr>
+                      </thead>
+                      <tbody id="dailySalesBody">
+                        <tr>
+                          <td colspan="3" class="text-center">Loading...</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div class="report-card">
+                  <h3>Monthly Sales</h3>
+                  <div id="monthlySalesTable">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>Month</th>
+                          <th>Sales Amount</th>
+                          <th>Bills Count</th>
+                        </tr>
+                      </thead>
+                      <tbody id="monthlySalesBody">
+                        <tr>
+                          <td colspan="3" class="text-center">Loading...</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Users Management Page -->
+            <div id="usersPage" class="page-content">
+              <div class="page-header">
+                <h2>Manage Staff</h2>
+                <button id="addUserBtn" class="btn btn-primary">+ Add Staff</button>
+              </div>
+
+              <div class="table-container">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Created Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="usersBody">
+                    <tr>
+                      <td colspan="6" class="text-center">Loading...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <!-- Product Modal -->
+  <div id="productModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="productModalTitle">Add Product</h2>
+        <button type="button" class="modal-close">&times;</button>
+      </div>
+      <form id="productForm">
+        <div class="form-group">
+          <label for="productName">Product Name</label>
+          <input type="text" id="productName" required>
+        </div>
+        <div class="form-group">
+          <label for="productCategory">Category</label>
+          <input type="text" id="productCategory" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="productPrice">Price (₹)</label>
+            <input type="number" id="productPrice" required step="0.01" min="0">
+          </div>
+          <div class="form-group">
+            <label for="productStock">Stock Quantity</label>
+            <input type="number" id="productStock" required min="0">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="productBarcode">Barcode (Optional)</label>
+          <input type="text" id="productBarcode">
+        </div>
+        <div class="form-group">
+          <label for="productImage">Product Image (Optional)</label>
+          <input type="file" id="productImage" accept="image/*" name="product_image">
+          <small>Supported formats: JPEG, PNG, GIF (Max 5MB)</small>
+          <div id="imagePreview" style="margin-top: 10px;"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div id="userModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="userModalTitle">Add Staff</h2>
+        <button type="button" class="modal-close">&times;</button>
+      </div>
+      <form id="userForm">
+        <div class="form-group">
+          <label for="userName">Username</label>
+          <input type="text" id="userName" required>
+        </div>
+        <div class="form-group">
+          <label for="userEmail">Email</label>
+          <input type="email" id="userEmail" required>
+        </div>
+        <div class="form-group">
+          <label for="userPassword">Password</label>
+          <input type="password" id="userPassword" required>
+        </div>
+        <div class="form-group">
+          <label for="userRole">Role</label>
+          <select id="userRole" required>
+            <option value="">Select Role</option>
+            <option value="staff">Staff</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Staff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification -->
+  <div id="notification" class="notification"></div>
+
+  <!-- Scripts -->
+  <script src="js/constants.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/billing.js"></script>
+  <script src="js/products.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/users.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
