@@ -1,16 +1,22 @@
-require('dotenv').config({ path: require('path').join(__dirname, '.env') });
+const path = require('path');
+// Load project root .env first (Supabase DATABASE_URL), then backend .env
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const path = require('path');
 const cors = require('cors');
 
-// Initialize express app
+// PostgreSQL session store so sessions persist on Vercel (shared across serverless instances)
+const pool = require('./config/database');
+const pgSession = require('connect-pg-simple')(session);
+const sessionStore = new pgSession({ pool, createTableIfMissing: true });
+
 const app = express();
 
 // Middleware
-app.use(cors());
-// Don't parse multipart requests here - let multer handle them
+app.use(cors({ origin: true, credentials: true }));
 app.use((req, res, next) => {
   if (req.is('multipart/form-data')) {
     next();
@@ -26,15 +32,17 @@ app.use((req, res, next) => {
   }
 });
 
-// Session configuration
+// Session configuration (store in Supabase so login persists on Vercel)
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your_session_secret_key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
   cookie: {
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production' // HTTPS only in production
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
   }
 }));
 

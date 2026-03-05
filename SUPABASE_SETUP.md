@@ -7,14 +7,11 @@ This project uses **Supabase (PostgreSQL)** as the database.
 1. Go to [supabase.com](https://supabase.com) and sign in.
 2. Open your project (or create one).
 3. Go to **Project Settings** (gear) → **Database**.
-4. Under **Connection string**, choose **URI**.
-5. Copy the connection string. It looks like:
-   ```
-   postgresql://postgres.[project-ref]:[YOUR-PASSWORD]@aws-0-[region].pooler.supabase.com:6543/postgres
-   ```
-6. Replace `[YOUR-PASSWORD]` with your database password (same as you set when creating the project).
+4. Under **Connection string**, choose **URI**, and set **Method** to **Session pooler** (not Direct).
+5. Copy the connection string. The username **must** be `postgres.[project-ref]` (e.g. `postgres.abc123xyz`), not just `postgres`, or you'll get "Tenant or user not found".
+6. Replace `[YOUR-PASSWORD]` with your database password. If the password contains `@`, use `%40` in the URI (e.g. `mypass%40word`).
 
-**For serverless (Vercel)** use the **Connection pooling** string (port **6543**), not the direct connection (5432).
+**For serverless (Vercel)** always use the **Session pooler** (port **6543**), not the direct connection (5432).
 
 ## 2. Configure environment variables
 
