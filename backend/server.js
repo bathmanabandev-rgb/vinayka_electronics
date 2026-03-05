@@ -74,11 +74,11 @@ app.get('*', (req, res, next) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-// Error handling middleware
+// Error handling middleware (never send if response already sent - avoids ERR_HTTP_HEADERS_SENT)
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
-  
-  // Handle multer errors
+  if (res.headersSent) return next(err);
+
   if (err.name === 'MulterError') {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
@@ -91,15 +91,14 @@ app.use((err, req, res, next) => {
       message: 'File upload error: ' + err.message
     });
   }
-  
-  // Handle validation errors
+
   if (err.message && err.message.includes('Only image files')) {
     return res.status(400).json({
       success: false,
       message: err.message
     });
   }
-  
+
   res.status(500).json({
     success: false,
     message: err.message || 'Internal Server Error'

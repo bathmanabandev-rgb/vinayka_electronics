@@ -1,42 +1,25 @@
 // Products Module
 class Products {
+  static currentPage = 1;
+  static perPage = 10;
+  static filteredList = []; // current list after search (used for pagination)
+
   // Initialize
   static init() {
     console.log('Products module initializing...');
     this.setupEventListeners();
-    // Load products on init
     this.loadProducts();
   }
 
+  static _searchBound = false;
+
   // Setup event listeners
   static setupEventListeners() {
-    console.log('Setting up product event listeners...');
-    
-    // Add product button
     const addProductBtn = document.getElementById('addProductBtn');
     if (addProductBtn) {
-      console.log('Add Product button found, adding click listener');
-      addProductBtn.addEventListener('click', () => {
-        console.log('Add Product button clicked');
-        this.showAddProductModal();
-      });
-    } else {
-      console.warn('Add Product button not found in DOM');
+      addProductBtn.addEventListener('click', () => this.showAddProductModal());
     }
-
-    // Product search (client-side instant filter)
-    const productSearch = document.getElementById('productSearch');
-    if (productSearch) {
-      productSearch.addEventListener('input', (e) => {
-        const q = e.target.value.trim();
-        if (q === '') {
-          // empty -> show cached list
-          if (this.cachedProducts) this.displayProducts(this.cachedProducts);
-        } else {
-          this.filterProducts(q);
-        }
-      });
-    }
+    this.bindSearchInput();
 
     // Product form
     const productForm = document.getElementById('productForm');
@@ -59,36 +42,108 @@ class Products {
     });
   }
 
+  // Bind search input (call when products page is shown so it works on Vercel too)
+  static bindSearchInput() {
+    const el = document.getElementById('productSearch');
+    if (!el || this._searchBound) return;
+    el.addEventListener('input', () => {
+      const q = (el.value || '').trim();
+      if (!this.cachedProducts) return;
+      this.applySearch(q);
+    });
+    el.addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') e.preventDefault();
+      const q = (el.value || '').trim();
+      if (!this.cachedProducts) return;
+      this.applySearch(q);
+    });
+    this._searchBound = true;
+  }
+
   // Load products
   static async loadProducts() {
     try {
       const response = await API.getAllProducts();
-
       if (response.success) {
-        // cache products for client-side filtering
         this.cachedProducts = response.data || [];
-        this.displayProducts(this.cachedProducts);
+        this.filteredList = this.cachedProducts.slice();
+        this.currentPage = 1;
+        const searchInput = document.getElementById('productSearch');
+        if (searchInput) searchInput.value = '';
+        this.renderProductsPage();
+        this.bindSearchInput();
       }
     } catch (error) {
       Utils.showNotification(error.message, STATUS.ERROR);
     }
   }
 
-  // Client-side filter (search)
-  static filterProducts(searchTerm) {
+  // Apply search and refresh display
+  static applySearch(q) {
     if (!this.cachedProducts) return;
-    const q = searchTerm.toLowerCase();
-    const filtered = this.cachedProducts.filter(p => {
-      return (p.name && p.name.toLowerCase().includes(q)) ||
-             (p.category && p.category.toLowerCase().includes(q)) ||
-             (p.barcode && p.barcode.toLowerCase().includes(q));
-    });
-    this.displayProducts(filtered);
+    const term = q.toLowerCase();
+    if (term === '') {
+      this.filteredList = this.cachedProducts.slice();
+    } else {
+      this.filteredList = this.cachedProducts.filter(p => {
+        return (p.name && p.name.toLowerCase().includes(term)) ||
+               (p.category && (p.category + '').toLowerCase().includes(term)) ||
+               (p.barcode && (p.barcode + '').toLowerCase().includes(term));
+      });
+    }
+    this.currentPage = 1;
+    this.renderProductsPage();
   }
 
-  // Display products
+  // Client-side filter (search) - kept for compatibility
+  static filterProducts(searchTerm) {
+    this.applySearch(searchTerm);
+  }
+
+  // Render current page of products + pagination
+  static renderProductsPage() {
+    const total = this.filteredList ? this.filteredList.length : 0;
+    const totalPages = Math.max(1, Math.ceil(total / this.perPage));
+    const start = (this.currentPage - 1) * this.perPage;
+    const pageItems = (this.filteredList || []).slice(start, start + this.perPage);
+
+    this.displayProducts(pageItems);
+    this.renderPagination(total, totalPages);
+  }
+
+  // Go to page
+  static goToPage(page) {
+    const total = this.filteredList ? this.filteredList.length : 0;
+    const totalPages = Math.max(1, Math.ceil(total / this.perPage));
+    if (page < 1 || page > totalPages) return;
+    this.currentPage = page;
+    this.renderProductsPage();
+  }
+
+  // Render pagination controls
+  static renderPagination(total, totalPages) {
+    const container = document.getElementById('productsPagination');
+    if (!container) return;
+    if (total === 0) {
+      container.innerHTML = '';
+      return;
+    }
+    const start = (this.currentPage - 1) * this.perPage + 1;
+    const end = Math.min(this.currentPage * this.perPage, total);
+    let html = '<div class="pagination-wrap">';
+    html += `<span class="pagination-info">Showing ${start}-${end} of ${total} products</span>`;
+    html += '<div class="pagination-btns">';
+    html += `<button type="button" class="btn btn-secondary btn-sm pagination-btn" ${this.currentPage <= 1 ? 'disabled' : ''} onclick="Products.goToPage(${this.currentPage - 1})">Previous</button>`;
+    html += `<span class="pagination-pages">Page ${this.currentPage} of ${totalPages}</span>`;
+    html += `<button type="button" class="btn btn-secondary btn-sm pagination-btn" ${this.currentPage >= totalPages ? 'disabled' : ''} onclick="Products.goToPage(${this.currentPage + 1})">Next</button>`;
+    html += '</div></div>';
+    container.innerHTML = html;
+  }
+
+  // Display products (single page worth)
   static displayProducts(products) {
     const tbody = document.getElementById('productsBody');
+    if (!tbody) return;
 
     if (!products || products.length === 0) {
       tbody.innerHTML = '<tr><td colspan="8" class="text-center">No products found</td></tr>';
@@ -127,7 +182,7 @@ class Products {
     tbody.innerHTML = html;
   }
 
-  // Search products
+  // Search products (API-based - optional)
   static async searchProducts(searchTerm) {
     try {
       const response = await API.searchProducts(searchTerm);
@@ -192,12 +247,12 @@ class Products {
       if (response.success) {
         const product = response.data;
         Utils.setValue('productName', product.name);
-        Utils.setValue('productCategory', product.category);
         Utils.setValue('productPrice', product.price);
         Utils.setValue('productStock', product.stock_quantity);
         Utils.setValue('productBarcode', product.barcode || '');
         Utils.setText('productModalTitle', 'Edit Product');
         sessionStorage.setItem('editingProductId', productId);
+        sessionStorage.setItem('editingProductCategory', product.category || 'General');
         Utils.showModal('productModal');
       }
     } catch (error) {
@@ -210,19 +265,20 @@ class Products {
     e.preventDefault();
 
     const name = Utils.getValue('productName').trim();
-    const category = Utils.getValue('productCategory').trim();
     const price = parseFloat(Utils.getValue('productPrice'));
     const stock = parseInt(Utils.getValue('productStock'));
     const barcode = Utils.getValue('productBarcode').trim();
     const imageFile = document.getElementById('productImage').files[0];
 
-    // Validate input
-    if (!name || !category || price < 0 || stock < 0) {
+    // Validate input (category removed from form - use default)
+    if (!name || price < 0 || stock < 0) {
       Utils.showNotification('Please fill all required fields correctly', STATUS.ERROR);
       return;
     }
 
-    // Create FormData for file upload
+    // Create FormData for file upload (category: keep existing on edit, else General)
+    const editingId = sessionStorage.getItem('editingProductId');
+    const category = editingId ? (sessionStorage.getItem('editingProductCategory') || 'General') : 'General';
     const formData = new FormData();
     formData.append('name', name);
     formData.append('category', category);
@@ -236,7 +292,6 @@ class Products {
     }
 
     try {
-      const editingId = sessionStorage.getItem('editingProductId');
       let response;
 
       if (editingId) {

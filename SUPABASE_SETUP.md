@@ -11,7 +11,7 @@ This project uses **Supabase (PostgreSQL)** as the database.
 5. Copy the connection string. The username **must** be `postgres.[project-ref]` (e.g. `postgres.abc123xyz`), not just `postgres`, or you'll get "Tenant or user not found".
 6. Replace `[YOUR-PASSWORD]` with your database password. If the password contains `@`, use `%40` in the URI (e.g. `mypass%40word`).
 
-**For serverless (Vercel)** always use the **Session pooler** (port **6543**), not the direct connection (5432).
+**For serverless (Vercel)** use the pooler. Prefer **Transaction mode** (port **6543**) to avoid "MaxClientsInSessionMode" errors; Session mode (port 5432) has a low connection limit.
 
 ## 2. Configure environment variables
 

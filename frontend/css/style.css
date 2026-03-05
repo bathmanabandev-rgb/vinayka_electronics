@@ -1098,6 +1098,38 @@ body {
   min-width: auto;
 }
 
+/* Products pagination */
+.pagination-bar {
+  margin-top: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color);
+}
+.pagination-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.pagination-info {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.pagination-btns {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.pagination-pages {
+  font-size: 14px;
+  color: var(--text-color);
+  font-weight: 500;
+}
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Search Input Styling */
 .search-input {
   width: 100%;
@@ -1287,39 +1319,44 @@ body {
 }
 
 /* ============================================
-   RESPONSIVE DESIGN
+   RESPONSIVE DESIGN - Same layout as desktop on mobile (sidebar left, content right)
    ============================================ */
 @media (max-width: 768px) {
+  /* Keep exact desktop layout: allow horizontal scroll so sidebar + content stay side by side */
+  body {
+    overflow-x: auto;
+  }
+
   .container-fluid {
-    flex-direction: column;
+    flex-direction: row;
+    min-width: 900px;
+    width: max-content;
   }
 
   .sidebar {
-    width: 100%;
-    height: auto;
-    max-height: 80px;
-    overflow-x: auto;
-    display: flex;
-    align-items: center;
+    width: 280px;
+    min-width: 280px;
+    height: 100vh;
+    max-height: none;
+    display: block;
+    overflow-y: auto;
   }
 
   .sidebar-header {
-    padding: 15px;
+    padding: 25px 15px;
   }
 
   .sidebar-header h2 {
     font-size: 18px;
-    margin-right: 20px;
   }
 
   .nav-menu {
-    display: flex;
-    gap: 8px;
-    padding: 10px;
+    display: block;
+    padding: 20px 15px;
   }
 
   .nav-menu li {
-    margin-bottom: 0;
+    margin-bottom: 8px;
   }
 
   .billing-container {

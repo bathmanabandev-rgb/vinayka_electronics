@@ -204,5 +204,8 @@ class Utils {
   }
 }
 
+// Expose globally so auth.js and other scripts can use it (script load order)
+if (typeof window !== 'undefined') window.Utils = Utils;
+
 // Update time every second
 setInterval(() => Utils.updateTime(), 1000);

@@ -10,14 +10,18 @@ if (process.env.VERCEL === '1' && !connectionString) {
   throw new Error('On Vercel, DATABASE_URL must be set in Environment Variables. Add your Supabase connection string and redeploy.');
 }
 
-// Supabase requires SSL for all connections (dev and prod)
+// Use Transaction mode (port 6543) in DATABASE_URL to avoid Session mode connection limit.
+// With Transaction mode, pool can be 5–10. With Session mode (5432), use DB_POOL_SIZE=2.
+const poolSize = process.env.DB_POOL_SIZE ? parseInt(process.env.DB_POOL_SIZE, 10) : (connectionString ? 5 : 10);
+
 const pool = connectionString
   ? new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false },
-      max: 10,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000
+      max: poolSize,
+      idleTimeoutMillis: 20000,
+      connectionTimeoutMillis: 10000,
+      allowExitOnIdle: true
     })
   : new Pool({
       host: process.env.DB_HOST || 'localhost',
@@ -26,8 +30,8 @@ const pool = connectionString
       database: process.env.DB_NAME || 'postgres',
       port: parseInt(process.env.DB_PORT, 10) || 5432,
       ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false,
-      max: 10,
-      idleTimeoutMillis: 30000,
+      max: poolSize,
+      idleTimeoutMillis: 20000,
       connectionTimeoutMillis: 10000
     });
 
