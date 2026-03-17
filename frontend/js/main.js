@@ -170,23 +170,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup page navigation
   setupNavigation();
 
-  // Initialize modules after auth check
-  if (Utils.isAuthenticated()) {
+  let modulesInitialized = false;
+  const initModulesOnce = () => {
+    if (modulesInitialized) return;
+    if (!Utils.isAuthenticated()) return;
+    modulesInitialized = true;
     Products.init();
     Billing.init();
     Reports.init();
     Users.init();
-  } else {
-    // If not authenticated, initialize Products module after a brief delay
-    setTimeout(() => {
-      if (Utils.isAuthenticated()) {
-        Products.init();
-        Billing.init();
-        Reports.init();
-        Users.init();
-      }
-    }, 100);
-  }
+  };
+
+  // If we already have a session (rare but possible), init immediately.
+  initModulesOnce();
+
+  // Otherwise, init right when Auth finishes login/session check.
+  document.addEventListener('app:authenticated', () => initModulesOnce());
 });
 
 // Setup navigation

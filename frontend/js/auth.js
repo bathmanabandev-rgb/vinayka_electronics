@@ -128,6 +128,9 @@ class Auth {
 
     // Load dashboard
     this.loadDashboard();
+
+    // Notify the app that authentication is complete (used to init modules reliably)
+    document.dispatchEvent(new Event('app:authenticated'));
   }
 
   // Update user info in sidebar
