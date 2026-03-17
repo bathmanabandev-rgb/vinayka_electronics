@@ -11,6 +11,83 @@ const toNumber = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+
+// Convert amount to Indian Rupees in words (e.g. 123456.78 -> "One Lakh Twenty Three Thousand Four Hundred Fifty Six Rupees and Seventy Eight Paise Only")
+function numberToWordsInRupees(amount) {
+  const n = toNumber(amount);
+  const intPart = Math.floor(n);
+  const decPart = Math.round((n - intPart) * 100);
+
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function toWords2Digit(num) {
+    if (num < 20) return ones[num];
+    return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
+  }
+  function toWords3Digit(num) {
+    if (num === 0) return '';
+    let s = '';
+    if (num >= 100) s += ones[Math.floor(num / 100)] + ' Hundred ';
+    const r = num % 100;
+    if (r) s += toWords2Digit(r);
+    return s.trim();
+  }
+
+  if (intPart === 0 && decPart === 0) return 'Zero Rupees Only';
+  let words = '';
+
+  let x = intPart;
+  if (x >= 10000000) {
+    const crore = Math.floor(x / 10000000);
+    if (crore > 0) words += (crore >= 100 ? toWords3Digit(crore) : toWords2Digit(crore)) + ' Crore ';
+    x %= 10000000;
+  }
+  if (x >= 100000) {
+    const lakh = Math.floor(x / 100000);
+    if (lakh > 0) words += toWords2Digit(lakh) + ' Lakh ';
+    x %= 100000;
+  }
+  if (x >= 1000) {
+    const thousand = Math.floor(x / 1000);
+    if (thousand > 0) words += toWords3Digit(thousand) + ' Thousand ';
+    x %= 1000;
+  }
+  if (x > 0) words += toWords3Digit(x) + ' ';
+  words += 'Rupees';
+  if (decPart > 0) words += ' and ' + toWords2Digit(decPart) + ' Paise';
+  words += ' Only';
+  return words.trim();
+}
+
+// Wrap text to fit width and draw each line (left or center aligned)
+function drawRupeesInWords(doc, text, x, y, maxWidth, fontSize = 9, lineHeight = 11, align = 'center') {
+  doc.font('Helvetica').fontSize(fontSize).fillColor('black');
+  const words = text.split(/\s+/);
+  const lines = [];
+  let current = '';
+  for (const w of words) {
+    const trial = current ? current + ' ' + w : w;
+    if (doc.widthOfString(trial) <= maxWidth) {
+      current = trial;
+    } else {
+      if (current) lines.push(current);
+      current = w;
+    }
+  }
+  if (current) lines.push(current);
+  lines.forEach((line, i) => {
+    const lineY = y + i * lineHeight;
+    if (align === 'center') {
+      const lineW = doc.widthOfString(line);
+      const startX = x + Math.max(0, (maxWidth - lineW) / 2);
+      doc.text(line, startX, lineY);
+    } else {
+      doc.text(line, x, lineY);
+    }
+  });
+}
+
 // Create a new bill (used by routes)
 exports.createBill = async (req, res) => {
   try {
@@ -91,7 +168,7 @@ exports.generateInvoicePDF = async (req, res) => {
     
     const doc = new PDFDocument({ size: 'A4', margin: 15 });
     res.setHeader('Content-Type', 'application/pdf');
-    
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     // Generate filename with invoice number and company name
     const invoiceNo = bill.invoice_no || `INV-${String(bill.id).padStart(4, '0')}`;
     const safeCompanyName = 'VINAYAGA_ELECTRICALS';
@@ -116,10 +193,12 @@ exports.generateInvoicePDF = async (req, res) => {
     let y = outerMarginY + 8;
 
     // ===== HEADER ROW =====
-    doc.font('Helvetica-Bold').fontSize(8).text(`GSTIN:${COMPANY_GST}`, outerMarginX + 6, y);
     doc.fontSize(14).font('Helvetica-Bold').text('TAX INVOICE', pageW / 2 - 60, y - 2);
-    doc.fontSize(8).font('Helvetica').text('Cell : 99431 37207', pageW - outerMarginX - 115, y);
-    doc.text('63696 35827', pageW - outerMarginX - 115, y + 11);
+    // Right header contact - right aligned to the same edge
+    const contactX = pageW - outerMarginX - 120;
+    const contactW = 110;
+    doc.fontSize(8).font('Helvetica').text('Cell : 99431 37207', contactX, y, { width: contactW, align: 'right' });
+    doc.text('63696 35827', contactX, y + 11, { width: contactW, align: 'right' });
     
     y += 28;
     // ===== COMPANY NAME & ADDRESS =====
@@ -166,46 +245,32 @@ exports.generateInvoicePDF = async (req, res) => {
       doc.widthOfString('Order No :'),
       doc.widthOfString('Vehicle No :')
     );
-    const lineStart = labelX + maxLabelWidth + 18; // Same start position for all lines
+    const valueX = labelX + maxLabelWidth + 8;
+    const valueWidth = fieldXEnd - valueX;
     
     function drawGuide(yPos) {
       doc.save();
       doc.lineWidth(0.5).dash(1, { space: 2 }).strokeColor('#000000')
-        .moveTo(lineStart, yPos).lineTo(fieldXEnd, yPos).stroke();
+        .moveTo(valueX, yPos).lineTo(fieldXEnd, yPos).stroke();
       doc.undash();
       doc.restore();
     }
     
-    // Position lines lower with even spacing (16px between each)
-    // Labels at y + 12, 28, 44, 60 - text positioned 4px below each label
-    // No dotted lines - just print text values
+    const rowY = [12, 28, 44, 60];
+    const valueOpts = { width: valueWidth, align: 'right' };
     
-    // Invoice No
-    doc.font(labelFont).fontSize(labelFontSize).text('Invoice No :', labelX, y + 12);
-    if (invoiceNo) {
-      doc.font('Helvetica').fontSize(9).text(invoiceNo, lineStart, y + 16);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Invoice No :', labelX, y + rowY[0]);
+    doc.font('Helvetica').fontSize(9).text(invoiceNo || '', valueX, y + rowY[0], valueOpts);
     
-    // Invoice Date
-    doc.font(labelFont).fontSize(labelFontSize).text('Invoice Date :', labelX, y + 28);
-    if (bill.invoice_date) {
-      const invoiceDate = new Date(bill.invoice_date);
-      doc.font('Helvetica').fontSize(9).text(invoiceDate.toLocaleDateString('en-IN'), lineStart, y + 32);
-    } else if (bill.created_at) {
-      doc.font('Helvetica').fontSize(9).text(new Date(bill.created_at).toLocaleDateString('en-IN'), lineStart, y + 32);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Invoice Date :', labelX, y + rowY[1]);
+    const dateStr = bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString('en-IN') : (bill.created_at ? new Date(bill.created_at).toLocaleDateString('en-IN') : '');
+    doc.font('Helvetica').fontSize(9).text(dateStr, valueX, y + rowY[1], valueOpts);
     
-    // Order No
-    doc.font(labelFont).fontSize(labelFontSize).text('Order No :', labelX, y + 44);
-    if (bill.order_no) {
-      doc.font('Helvetica').fontSize(9).text(bill.order_no, lineStart, y + 48);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Order No :', labelX, y + rowY[2]);
+    doc.font('Helvetica').fontSize(9).text(bill.order_no || '', valueX, y + rowY[2], valueOpts);
     
-    // Vehicle No
-    doc.font(labelFont).fontSize(labelFontSize).text('Vehicle No :', labelX, y + 60);
-    if (bill.vehicle_no) {
-      doc.font('Helvetica').fontSize(9).text(bill.vehicle_no, lineStart, y + 64);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Vehicle No :', labelX, y + rowY[3]);
+    doc.font('Helvetica').fontSize(9).text(bill.vehicle_no || '', valueX, y + rowY[3], valueOpts);
 
     y += boxH + 4;
 
@@ -223,7 +288,8 @@ exports.generateInvoicePDF = async (req, res) => {
     const col4 = tableX + 290;
     const col5 = tableX + 335;
     const col6 = tableX + 385;
-    const rowH = 50;
+    const descWidth = 175; // Description column width (col3 - col2 - small gap)
+    const rowH = 58; // Tall enough for 2 lines of description
 
     // Header row (closed box)
     const tableTopY = y;
@@ -238,21 +304,23 @@ exports.generateInvoicePDF = async (req, res) => {
     
     let itemsY = y + headerH;
 
-    // Item rows (text only, no horizontal row borders)
+    // Item rows - full description with wrap
     doc.fillColor('#000000').font('Helvetica').fontSize(9);
     let itemNo = 1;
+
     for (const item of bill.items) {
       const qty = parseInt(item.quantity) || 0;
       const price = toNumber(item.price || 0);
       const lineTotal = qty * price;
-      
+      const desc = (item.product_name || 'N/A').trim();
+
       doc.text(String(itemNo), col1, itemsY + 4);
-      doc.text((item.product_name || 'N/A').substring(0, 35), col2, itemsY + 4, { width: 170 });
+      doc.text(desc, col2, itemsY + 4, { width: descWidth, align: 'left' });
       doc.text(item.hsn_code || '0', col3, itemsY + 4);
       doc.text(String(qty), col4, itemsY + 4);
       doc.text(price.toFixed(2), col5, itemsY + 4);
       doc.text(lineTotal.toFixed(2), col6, itemsY + 4);
-      
+
       itemsY += rowH;
       itemNo++;
     }
@@ -325,7 +393,7 @@ exports.generateInvoicePDF = async (req, res) => {
     const cgst = tax / 2 || 0;
     const sgst = tax / 2 || 0;
     const igst = 0;
-    const grandTotal = toNumber(bill.grand_total);
+    const grandTotal = toNumber(bill.grand_total ?? bill.grandTotal ?? subtotal);
 
     // Helper to render a standard total row
     const renderRow = (label, value) => {
@@ -353,27 +421,20 @@ exports.generateInvoicePDF = async (req, res) => {
     // Use SAME vertical divider (splitX) as top section
     // The vertical divider already extends through the entire box from line 276
 
-    // Rupees in Words (left) - blank dotted line for handwriting
+    // Rupees in Words (left) - label and amount centered in column
     const wordsLabelY = rupeesBoxY + 6;
-    doc.font('Helvetica-Bold').fontSize(9).text('Rupees in Words :', bottomBoxX + 4, wordsLabelY);
-    
-    // Draw a continuous dashed guide line from after label to the vertical split for handwriting
-    doc.font('Helvetica-Bold').fontSize(9);
-    const labelWidth = doc.widthOfString('Rupees in Words :');
-    const lineStartX = bottomBoxX + labelWidth + 8; // Gap after label
-    const lineEndX = splitX - 4; // Small margin before divider
-    const lineY = wordsLabelY + 5; // Position line below label
-    
-    if (lineEndX > lineStartX) {
-      doc.save();
-      doc.lineWidth(0.8).strokeColor('#000000')
-        .moveTo(lineStartX, lineY)
-        .lineTo(lineEndX, lineY)
-        .dash(2, { space: 2 }) // Continuous dotted line
-        .stroke();
-      doc.undash();
-      doc.restore();
+    const leftColWidth = splitX - bottomBoxX;
+    doc.font('Helvetica-Bold').fontSize(9).text('Rupees in Words :', bottomBoxX, wordsLabelY, { width: leftColWidth, align: 'center' });
+    const wordsY = wordsLabelY + 14;
+    const wordsWidth = Math.max(80, leftColWidth - 8);
+    const wordsStartX = bottomBoxX + 4;
+    let amountInWords;
+    try {
+      amountInWords = String(numberToWordsInRupees(grandTotal) || 'Zero Rupees Only');
+    } catch (_) {
+      amountInWords = grandTotal != null ? `Rupees ${Number(grandTotal).toFixed(2)} Only` : 'Zero Rupees Only';
     }
+    drawRupeesInWords(doc, amountInWords, wordsStartX, wordsY, wordsWidth);
 
     // Terms & Conditions (bottom section - left side)
     // Position it much lower to give MUCH MORE space for "Rupees in Words"
@@ -551,7 +612,7 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     
     const doc = new PDFDocument({ size: 'A4', margin: 15 });
     res.setHeader('Content-Type', 'application/pdf');
-    
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     // Generate filename with invoice number and company name
     const invoiceNo = bill.invoice_no || `INV-${String(bill.id).padStart(4, '0')}`;
     const safeCompanyName = 'VINAYAGA_ELECTRICALS';
@@ -576,10 +637,12 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     let y = outerMarginY + 8;
 
     // ===== HEADER ROW =====
-    doc.font('Helvetica-Bold').fontSize(8).text(`GSTIN:${COMPANY_GST}`, outerMarginX + 6, y);
     doc.fontSize(14).font('Helvetica-Bold').text('TAX INVOICE', pageW/2 - 60, y - 2);
-    doc.fontSize(8).font('Helvetica').text('Cell : 99431 37207', pageW - outerMarginX - 115, y);
-    doc.text('63696 35827', pageW - outerMarginX - 115, y + 11);
+    // Right header contact - right aligned to the same edge
+    const contactX = pageW - outerMarginX - 120;
+    const contactW = 110;
+    doc.fontSize(8).font('Helvetica').text('Cell : 99431 37207', contactX, y, { width: contactW, align: 'right' });
+    doc.text('63696 35827', contactX, y + 11, { width: contactW, align: 'right' });
     
     y += 28;
     // ===== COMPANY NAME & ADDRESS =====
@@ -626,46 +689,32 @@ exports.generateInvoicePDFPublic = async (req, res) => {
       doc.widthOfString('Order No :'),
       doc.widthOfString('Vehicle No :')
     );
-    const lineStart = labelX + maxLabelWidth + 18; // Same start position for all lines
+    const valueX = labelX + maxLabelWidth + 8;
+    const valueWidth = fieldXEnd - valueX;
     
     function drawGuide(yPos) {
       doc.save();
       doc.lineWidth(0.5).dash(1, { space: 2 }).strokeColor('#000000')
-        .moveTo(lineStart, yPos).lineTo(fieldXEnd, yPos).stroke();
+        .moveTo(valueX, yPos).lineTo(fieldXEnd, yPos).stroke();
       doc.undash();
       doc.restore();
     }
     
-    // Position lines lower with even spacing (16px between each)
-    // Labels at y + 12, 28, 44, 60 - text positioned 4px below each label
-    // No dotted lines - just print text values
+    const rowY = [12, 28, 44, 60];
+    const valueOpts = { width: valueWidth, align: 'right' };
     
-    // Invoice No
-    doc.font(labelFont).fontSize(labelFontSize).text('Invoice No :', labelX, y + 12);
-    if (invoiceNo) {
-      doc.font('Helvetica').fontSize(9).text(invoiceNo, lineStart, y + 16);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Invoice No :', labelX, y + rowY[0]);
+    doc.font('Helvetica').fontSize(9).text(invoiceNo || '', valueX, y + rowY[0], valueOpts);
     
-    // Invoice Date
-    doc.font(labelFont).fontSize(labelFontSize).text('Invoice Date :', labelX, y + 28);
-    if (bill.invoice_date) {
-      const invoiceDate = new Date(bill.invoice_date);
-      doc.font('Helvetica').fontSize(9).text(invoiceDate.toLocaleDateString('en-IN'), lineStart, y + 32);
-    } else if (bill.created_at) {
-      doc.font('Helvetica').fontSize(9).text(new Date(bill.created_at).toLocaleDateString('en-IN'), lineStart, y + 32);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Invoice Date :', labelX, y + rowY[1]);
+    const dateStr = bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString('en-IN') : (bill.created_at ? new Date(bill.created_at).toLocaleDateString('en-IN') : '');
+    doc.font('Helvetica').fontSize(9).text(dateStr, valueX, y + rowY[1], valueOpts);
     
-    // Order No
-    doc.font(labelFont).fontSize(labelFontSize).text('Order No :', labelX, y + 44);
-    if (bill.order_no) {
-      doc.font('Helvetica').fontSize(9).text(bill.order_no, lineStart, y + 48);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Order No :', labelX, y + rowY[2]);
+    doc.font('Helvetica').fontSize(9).text(bill.order_no || '', valueX, y + rowY[2], valueOpts);
     
-    // Vehicle No
-    doc.font(labelFont).fontSize(labelFontSize).text('Vehicle No :', labelX, y + 60);
-    if (bill.vehicle_no) {
-      doc.font('Helvetica').fontSize(9).text(bill.vehicle_no, lineStart, y + 64);
-    }
+    doc.font(labelFont).fontSize(labelFontSize).text('Vehicle No :', labelX, y + rowY[3]);
+    doc.font('Helvetica').fontSize(9).text(bill.vehicle_no || '', valueX, y + rowY[3], valueOpts);
 
     y += boxH + 4;
 
@@ -683,7 +732,8 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     const col4 = tableX + 290;
     const col5 = tableX + 335;
     const col6 = tableX + 385;
-    const rowH = 50;
+    const descWidth = 175; // Description column width (col3 - col2 - small gap)
+    const rowH = 58; // Tall enough for 2 lines of description
 
     // Header row (closed box)
     const tableTopY = y;
@@ -698,21 +748,23 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     
     let itemsY = y + headerH;
 
-    // Item rows (text only, no horizontal row borders)
+    // Item rows - full description with wrap
     doc.fillColor('#000000').font('Helvetica').fontSize(9);
     let itemNo = 1;
+
     for (const item of bill.items) {
       const qty = parseInt(item.quantity) || 0;
       const price = toNumber(item.price || 0);
       const lineTotal = qty * price;
-      
+      const desc = (item.product_name || 'N/A').trim();
+
       doc.text(String(itemNo), col1, itemsY + 4);
-      doc.text((item.product_name || 'N/A').substring(0, 35), col2, itemsY + 4, { width: 170 });
+      doc.text(desc, col2, itemsY + 4, { width: descWidth, align: 'left' });
       doc.text(item.hsn_code || '0', col3, itemsY + 4);
       doc.text(String(qty), col4, itemsY + 4);
       doc.text(price.toFixed(2), col5, itemsY + 4);
       doc.text(lineTotal.toFixed(2), col6, itemsY + 4);
-      
+
       itemsY += rowH;
       itemNo++;
     }
@@ -785,7 +837,7 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     const cgst = tax / 2 || 0;
     const sgst = tax / 2 || 0;
     const igst = 0;
-    const grandTotal = toNumber(bill.grand_total);
+    const grandTotal = toNumber(bill.grand_total ?? bill.grandTotal ?? subtotal);
 
     const renderRow = (label, value) => {
       doc.rect(totalsX, totalsY, totalsW, totalsRowH).stroke();
@@ -812,30 +864,23 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     // Bank Details and Rupees in Words are in the SAME left column
     // Totals and Signature are in the SAME right column
 
-    // Rupees in Words (printed as a blank dotted line for handwriting)
+    // Rupees in Words - label and amount centered in column
     const wordsLabelY = rupeesBoxY + 6;
-    doc.font('Helvetica-Bold').fontSize(9).text('Rupees in Words :', bottomBoxX + 4, wordsLabelY);
-
-    // Continuous dotted baseline from after the label up to the split line
-    doc.font('Helvetica-Bold').fontSize(9);
-    const labelWidth = doc.widthOfString('Rupees in Words :');
-    const dotsStartX = bottomBoxX + labelWidth + 8; // Gap after label
-    const dotsEndX = splitX - 4; // Small margin before divider
-    const baseY = wordsLabelY + 5; // Position line below label
-    if (dotsEndX > dotsStartX) {
-      doc.save();
-      doc.lineWidth(0.8).strokeColor('#000000')
-        .moveTo(dotsStartX, baseY)
-         .lineTo(dotsEndX, baseY)
-         .dash(2, { space: 2 }) // Continuous dotted line
-         .stroke();
-      doc.undash();
-      doc.restore();
+    const leftColWidth = splitX - bottomBoxX;
+    doc.font('Helvetica-Bold').fontSize(9).text('Rupees in Words :', bottomBoxX, wordsLabelY, { width: leftColWidth, align: 'center' });
+    const wordsY = wordsLabelY + 14;
+    const wordsWidth = Math.max(80, leftColWidth - 8);
+    const wordsStartX = bottomBoxX + 4;
+    let amountInWords;
+    try {
+      amountInWords = String(numberToWordsInRupees(grandTotal) || 'Zero Rupees Only');
+    } catch (_) {
+      amountInWords = grandTotal != null ? `Rupees ${Number(grandTotal).toFixed(2)} Only` : 'Zero Rupees Only';
     }
+    drawRupeesInWords(doc, amountInWords, wordsStartX, wordsY, wordsWidth);
 
      // Terms & Conditions (bottom section - left side)
-     // Position it below Rupees in Words with exact spacing as per image
-     const termsY = rupeesBoxY + 25; // Exact spacing from top
+     const termsY = rupeesBoxY + 44; // Below amount in words (label + 3 lines)
      doc.font('Helvetica-Bold').fontSize(8).text('Terms & Conditions :', bottomBoxX + 4, termsY);
      doc.font('Helvetica').fontSize(7)
       .text('• All Subject in Coimbatore Jurisdiction only.', bottomBoxX + 6, termsY + 9)
