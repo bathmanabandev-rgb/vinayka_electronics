@@ -245,7 +245,7 @@ exports.generateInvoicePDF = async (req, res) => {
       doc.widthOfString('Order No :'),
       doc.widthOfString('Vehicle No :')
     );
-    const valueX = labelX + maxLabelWidth + 8;
+    const valueX = labelX + maxLabelWidth + 4;
     const valueWidth = fieldXEnd - valueX;
     
     function drawGuide(yPos) {
@@ -257,13 +257,13 @@ exports.generateInvoicePDF = async (req, res) => {
     }
     
     const rowY = [12, 28, 44, 60];
-    const valueOpts = { width: valueWidth, align: 'right' };
+    const valueOpts = { width: valueWidth, align: 'left' };
     
     doc.font(labelFont).fontSize(labelFontSize).text('Invoice No :', labelX, y + rowY[0]);
     doc.font('Helvetica').fontSize(9).text(invoiceNo || '', valueX, y + rowY[0], valueOpts);
     
     doc.font(labelFont).fontSize(labelFontSize).text('Invoice Date :', labelX, y + rowY[1]);
-    const dateStr = bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString('en-IN') : (bill.created_at ? new Date(bill.created_at).toLocaleDateString('en-IN') : '');
+    const dateStr = bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString('en-IN') : '';
     doc.font('Helvetica').fontSize(9).text(dateStr, valueX, y + rowY[1], valueOpts);
     
     doc.font(labelFont).fontSize(labelFontSize).text('Order No :', labelX, y + rowY[2]);
@@ -356,8 +356,8 @@ exports.generateInvoicePDF = async (req, res) => {
     // Contains: Bank Details + Totals (top), Rupees in Words + Terms + Signature (bottom)
     const bottomBoxX = tableX;
     const bottomBoxW = tableW;
-    const bankBoxH = 70; // Height for bank details + totals section
-    const rupeesBoxH = 70; // Height for rupees in words + terms + signature section
+    const bankBoxH = 86; // Height for bank details + totals section
+    const rupeesBoxH = 84; // Increased space to avoid congested footer
     const totalFooterH = bankBoxH + rupeesBoxH; // Total height of combined footer box
 
     // Place footer directly after items table to guarantee single-page layout
@@ -367,7 +367,7 @@ exports.generateInvoicePDF = async (req, res) => {
     doc.lineWidth(0.8).rect(bottomBoxX, bankBoxY, bottomBoxW, totalFooterH).stroke();
 
     // Vertical divider - same position for entire footer
-    const splitX = col3;
+    const splitX = tableX + 225; // align with table's existing vertical boundary
     doc.moveTo(splitX, bankBoxY).lineTo(splitX, bankBoxY + totalFooterH).stroke();
     
     // Horizontal divider between bank/totals section and rupees/terms/signature section
@@ -438,15 +438,14 @@ exports.generateInvoicePDF = async (req, res) => {
 
     // Terms & Conditions (bottom section - left side)
     // Position it much lower to give MUCH MORE space for "Rupees in Words"
-    const termsY = rupeesBoxY + 45; // Much more space for Rupees in Words
+    const termsY = rupeesBoxY + 52; // balanced spacing under rupees text
     doc.font('Helvetica-Bold').fontSize(8).text('Terms & Conditions :', bottomBoxX + 4, termsY);
     doc.font('Helvetica').fontSize(7)
       .text('• All Subject in Coimbatore Jurisdiction only.', bottomBoxX + 6, termsY + 9)
       .text('  Certified that the Particulars given above true and correct', bottomBoxX + 6, termsY + 18);
 
     // Company name & Signature (right side - in the bottom section)
-    // Position in the empty space on the right side, visible and properly placed
-    const signBaseY = rupeesBoxY + 30; // Position in the middle-right area, clearly visible
+    const signBaseY = rupeesBoxY + 12;
     const rightHalfWidth = bottomBoxX + bottomBoxW - splitX;
     
     // Company name - bold, uppercase, right-aligned - MAKE SURE IT'S VISIBLE
@@ -457,7 +456,7 @@ exports.generateInvoicePDF = async (req, res) => {
     doc.text(companyText, companyNameX, signBaseY, { align: 'right', width: companyNameWidth });
     
     // Draw a signature line for handwritten signature
-    const sigLineY = signBaseY + 15;
+    const sigLineY = rupeesBoxY + 58;
     const sigLineStartX = splitX + 8;
     const sigLineEndX = splitX + rightHalfWidth - 8;
     doc.save();
@@ -470,7 +469,7 @@ exports.generateInvoicePDF = async (req, res) => {
     // Authorised Signature label - right-aligned below the signature line - MAKE SURE IT'S VISIBLE
     doc.font('Helvetica').fontSize(8);
     const sigText = 'Authorised Signature';
-    doc.text(sigText, companyNameX, sigLineY + 5, { align: 'right', width: companyNameWidth });
+    doc.text(sigText, companyNameX, sigLineY + 7, { align: 'right', width: companyNameWidth });
 
     doc.end();
   } catch (error) {
@@ -689,7 +688,7 @@ exports.generateInvoicePDFPublic = async (req, res) => {
       doc.widthOfString('Order No :'),
       doc.widthOfString('Vehicle No :')
     );
-    const valueX = labelX + maxLabelWidth + 8;
+    const valueX = labelX + maxLabelWidth + 4;
     const valueWidth = fieldXEnd - valueX;
     
     function drawGuide(yPos) {
@@ -701,13 +700,13 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     }
     
     const rowY = [12, 28, 44, 60];
-    const valueOpts = { width: valueWidth, align: 'right' };
+    const valueOpts = { width: valueWidth, align: 'left' };
     
     doc.font(labelFont).fontSize(labelFontSize).text('Invoice No :', labelX, y + rowY[0]);
     doc.font('Helvetica').fontSize(9).text(invoiceNo || '', valueX, y + rowY[0], valueOpts);
     
     doc.font(labelFont).fontSize(labelFontSize).text('Invoice Date :', labelX, y + rowY[1]);
-    const dateStr = bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString('en-IN') : (bill.created_at ? new Date(bill.created_at).toLocaleDateString('en-IN') : '');
+    const dateStr = bill.invoice_date ? new Date(bill.invoice_date).toLocaleDateString('en-IN') : '';
     doc.font('Helvetica').fontSize(9).text(dateStr, valueX, y + rowY[1], valueOpts);
     
     doc.font(labelFont).fontSize(labelFontSize).text('Order No :', labelX, y + rowY[2]);
@@ -800,8 +799,8 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     // Contains: Bank Details + Totals (top), Rupees in Words + Terms + Signature (bottom)
     const bottomBoxX = tableX;
     const bottomBoxW = tableW;
-    const bankBoxH = 70; // Height for bank details + totals section
-    const rupeesBoxH = 70; // Height for rupees in words + terms + signature section
+    const bankBoxH = 86; // Height for bank details + totals section
+    const rupeesBoxH = 84; // Increased space to avoid congested footer
     const totalFooterH = bankBoxH + rupeesBoxH; // Total height of combined footer box
 
     // Place footer directly after items table to guarantee single-page layout
@@ -811,7 +810,7 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     doc.lineWidth(0.8).rect(bottomBoxX, bankBoxY, bottomBoxW, totalFooterH).stroke();
 
     // Vertical divider - same position for entire footer
-    const splitX = col3;
+    const splitX = tableX + 225; // align with table's existing vertical boundary
     doc.moveTo(splitX, bankBoxY).lineTo(splitX, bankBoxY + totalFooterH).stroke();
     
     // Horizontal divider between bank/totals section and rupees/terms/signature section
@@ -880,14 +879,14 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     drawRupeesInWords(doc, amountInWords, wordsStartX, wordsY, wordsWidth);
 
      // Terms & Conditions (bottom section - left side)
-     const termsY = rupeesBoxY + 44; // Below amount in words (label + 3 lines)
+    const termsY = rupeesBoxY + 52;
      doc.font('Helvetica-Bold').fontSize(8).text('Terms & Conditions :', bottomBoxX + 4, termsY);
      doc.font('Helvetica').fontSize(7)
       .text('• All Subject in Coimbatore Jurisdiction only.', bottomBoxX + 6, termsY + 9)
       .text('  Certified that the Particulars given above true and correct', bottomBoxX + 6, termsY + 18);
 
-    // Company name & Signature (right side) - right-aligned as per printed format
-    const signBaseY = rupeesBoxY + 45; // Align with Terms & Conditions
+    // Company name & Signature (right side)
+    const signBaseY = rupeesBoxY + 12;
     const rightHalfWidth = bottomBoxX + bottomBoxW - splitX; // Use splitX for alignment
     // Company name - bold, uppercase, right-aligned (as per image)
     doc.font('Helvetica-Bold').fontSize(9);
@@ -896,7 +895,7 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     doc.text(companyText, companyNameX, signBaseY, { align: 'right', width: rightHalfWidth - 8 });
     
     // Draw a signature line above the signature text
-    const sigLineY = signBaseY + 15;
+    const sigLineY = rupeesBoxY + 58;
     const sigLineStartX = splitX + 8;
     const sigLineEndX = splitX + rightHalfWidth - 8;
     doc.save();
@@ -909,7 +908,7 @@ exports.generateInvoicePDFPublic = async (req, res) => {
     // Authorised Signature label - right-aligned in the right half
     doc.font('Helvetica').fontSize(8);
     const sigText = 'Authorised Signature';
-    doc.text(sigText, companyNameX, sigLineY + 4, { align: 'right', width: rightHalfWidth - 8 });
+    doc.text(sigText, companyNameX, sigLineY + 7, { align: 'right', width: rightHalfWidth - 8 });
 
     doc.end();
   } catch (error) {
